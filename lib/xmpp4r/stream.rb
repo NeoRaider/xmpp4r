@@ -109,6 +109,7 @@ module Jabber
 
     def stop
       @parser_thread.kill
+      @parser_thread.join
       @parser = nil
     end
 
