@@ -164,6 +164,10 @@ module Jabber
           def kind_of?(o)
             o == IO ? true : super
           end
+
+          def external_encoding
+            'ASCII-8BIT'
+          end
         end
 
         # We're done and will use it
