@@ -187,7 +187,7 @@ begin
     # Thanks to the Merb project for this code.
     desc "Update Github Gemspec"
     task :update_gemspec do
-      skip_fields = %w(new_platform original_platform date)
+      skip_fields = %w(new_platform original_platform date cache_dir cache_file full_name loaded)
 
       result = "# WARNING : RAKE AUTO-GENERATED FILE.  DO NOT MANUALLY EDIT!\n"
       result << "# RUN : 'rake gem:update_gemspec'\n\n"

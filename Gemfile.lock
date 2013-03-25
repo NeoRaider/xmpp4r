@@ -3,6 +3,7 @@ PATH
   specs:
     xmpp4r (0.5)
       nokogiri
+      rake
       rdoc (> 2.4.2)
 
 GEM

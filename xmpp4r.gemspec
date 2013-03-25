@@ -5,8 +5,6 @@ Gem::Specification.new do |s|
   s.activated = false
   s.authors = ["Lucas Nussbaum", "Stephan Maka", "Glenn Rempe"]
   s.bindir = "bin"
-  s.cache_dir = "/usr/lib/ruby/gems/2.0.0/cache"
-  s.cache_file = "/usr/lib/ruby/gems/2.0.0/cache/xmpp4r-0.5.gem"
   s.add_dependency "nokogiri", ">= 0"
   s.add_dependency "rdoc", "> 2.4.2"
   s.add_dependency "rake", ">= 0"
@@ -234,10 +232,8 @@ Gem::Specification.new do |s|
  "tools/gen_requires.bash",
  "tools/xmpp4r-gemspec-test.rb",
  "xmpp4r.gemspec"]
-  s.full_name = "xmpp4r-0.5"
   s.has_rdoc = true
   s.homepage = "http://home.gna.org/xmpp4r/"
-  s.loaded = false
   s.name = "xmpp4r"
   s.platform = "ruby"
   s.rdoc_options = ["--quiet", "--title", "XMPP4R is an XMPP/Jabber library for Ruby.", "--opname", "index.html", "--main", "lib/xmpp4r.rb", "--line-numbers", "--inline-source"]
