@@ -194,7 +194,7 @@ begin
       result << "Gem::Specification.new do |s|\n"
       spec.instance_variables.sort.each do |ivar|
         value = spec.instance_variable_get(ivar)
-        name  = ivar.split("@").last
+        name  = ivar.to_s.split("@").last
         next if skip_fields.include?(name) || value.nil? || value == "" || (value.respond_to?(:empty?) && value.empty?)
         if name == "dependencies"
           value.each do |d|
