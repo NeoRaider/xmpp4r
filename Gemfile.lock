@@ -6,13 +6,11 @@ PATH
       rdoc (> 2.4.2)
 
 GEM
-  remote: http://rubygems.dev/
+  remote: http://rubygems.org/
   specs:
-    json (1.7.6)
-    nokogiri (1.5.6)
+    nokogiri (1.5.9)
     rake (0.9.6)
-    rdoc (3.12)
-      json (~> 1.4)
+    rdoc (4.0.0)
 
 PLATFORMS
   ruby

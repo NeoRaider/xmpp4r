@@ -1,4 +1,4 @@
-source ENV['LOCALGEMS'] or "http://rubygems.org"
+source "http://rubygems.org"
 
 gem 'rake', '~>0.9.0'
 
