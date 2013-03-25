@@ -18,6 +18,8 @@ module Jabber
     # Factory function to obtain a SASL helper for the specified mechanism
     def SASL.new(stream, mechanism)
       case mechanism
+        when 'SCRAM-SHA-1'
+          SCRAMSHA1.new(stream)
         when 'DIGEST-MD5'
           DigestMD5.new(stream)
         when 'PLAIN'
@@ -253,6 +255,162 @@ module Jabber
           a2 = "AUTHENTICATE:#{digest_uri}"
         end
         hh("#{hh(a1)}:#{nonce}:00000001:#{cnonce}:#{qop}:#{hh(a2)}")
+      end
+    end
+
+    ##
+    # SASL SCRAM-SHA1 authentication helper
+    class SCRAMSHA1 < Base
+      ##
+      # Sends the wished auth mechanism and wait for a challenge
+      #
+      # (proceed with SCRAMSHA1#auth)
+      def initialize(stream)
+        super
+
+        @nonce = generate_nonce
+        @client_fm = "n=#{escape @stream.jid.node },r=#{@nonce}"
+
+        challenge = {}
+        challenge_text = ''
+        error = nil
+        @stream.send(generate_auth('SCRAM-SHA-1', text=Base64::strict_encode64('n,,'+@client_fm))) { |reply|
+          if reply.name == 'challenge' and reply.namespace == NS_SASL
+            challenge_text = Base64::decode64(reply.text)
+            challenge = decode_challenge(challenge_text)
+          else
+            error = reply.first_element(nil).name
+          end
+          true
+        }
+        raise error if error
+
+        @server_fm = challenge_text
+        @cnonce = challenge['r']
+        @salt = Base64::decode64(challenge['s'])
+        @iterations = challenge['i'].to_i
+
+        raise 'SCRAM-SHA-1 protocol error' if @cnonce[0, @nonce.length] != @nonce
+      end
+
+      def decode_challenge(text)
+        res = {}
+
+        state = :key
+        key = ''
+        value = ''
+        text.scan(/./) do |ch|
+          if state == :key
+            if ch == '='
+              state = :value
+            else
+              key += ch
+            end
+
+          elsif state == :value
+            if ch == ','
+              # due to our home-made parsing of the challenge, the key could have
+              # leading whitespace. strip it, or that would break jabberd2 support.
+              key = key.strip
+              res[key] = value
+              key = ''
+              value = ''
+              state = :key
+            elsif ch == '"' and value == ''
+              state = :quote
+            else
+              value += ch
+            end
+
+          elsif state == :quote
+            if ch == '"'
+              state = :value
+            else
+              value += ch
+            end
+          end
+        end
+        # due to our home-made parsing of the challenge, the key could have
+        # leading whitespace. strip it, or that would break jabberd2 support.
+        key = key.strip
+        res[key] = value unless key == ''
+
+        Jabber::debuglog("SASL SCRAM-SHA-1 challenge:\n#{text}\n#{res.inspect}")
+
+        res
+      end
+
+      ##
+      # * Send a response
+      # * Wait for the server's challenge (which aren't checked)
+      # * Send a blind response to the server's challenge
+      def auth(password)
+        salted_password = hi(password, @salt, @iterations)
+        client_key = hmac(salted_password, 'Client Key')
+        stored_key = h(client_key)
+
+        final_message = "c=#{Base64::strict_encode64('n,,')},r=#{@cnonce}"
+        auth_message = "#{@client_fm},#{@server_fm},#{final_message}"
+
+        client_signature = hmac(stored_key, auth_message)
+        client_proof = xor(client_key, client_signature)
+
+
+        response_text = "#{final_message},p=#{Base64::strict_encode64(client_proof)}"
+
+        Jabber::debuglog("SASL SCRAM-SHA-1 response:\n#{response_text}")
+
+        r = REXML::Element.new('response')
+        r.add_namespace NS_SASL
+        r.text = Base64::strict_encode64(response_text)
+
+        error = nil
+        success = {}
+        @stream.send(r) { |reply|
+          if reply.name == 'success' and reply.namespace == NS_SASL
+            success = decode_challenge(Base64::decode64(reply.text))
+          elsif reply.name != 'challenge'
+            error = reply.first_element(nil).name
+          end
+          true
+        }
+
+        raise error if error
+
+        server_key = hmac(salted_password, 'Server Key')
+        server_signature = hmac(server_key, auth_message)
+
+        raise "Server authentication failed" if Base64::decode64(success['v']) != server_signature
+      end
+
+      private
+
+      def xor(a, b)
+        a.unpack('C*').zip(b.unpack('C*')).collect { | x, y | x ^ y }.pack('C*')
+      end
+
+      def h(s)
+        Digest::SHA1.digest(s)
+      end
+
+      def hmac(key, s)
+        OpenSSL::HMAC.digest('sha1', key, s)
+      end
+
+      def hi(s, salt, i)
+        r = Array.new(size=20, obj=0).pack('C*')
+        u = salt + [0, 0, 0, 1].pack('C*')
+
+        i.times do |x|
+          u = hmac(s, u)
+          r = xor(r, u)
+        end
+
+        r
+      end
+
+      def escape(data)
+        data.gsub(/=/, '=3D').gsub(/,/, '=2C')
       end
     end
   end

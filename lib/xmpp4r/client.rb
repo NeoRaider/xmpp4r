@@ -101,13 +101,16 @@ module Jabber
     # Throws ClientAuthenticationFailure
     #
     # Authentication mechanisms are used in the following preference:
+    # * SASL SCRAM-SHA-1
     # * SASL DIGEST-MD5
     # * SASL PLAIN
     # * Non-SASL digest
     # password:: [String]
     def auth(password)
       begin
-        if @stream_mechanisms.include? 'DIGEST-MD5'
+        if @stream_mechanisms.include? 'SCRAM-SHA-1'
+          auth_sasl SASL.new(self, 'SCRAM-SHA-1'), password
+        elsif @stream_mechanisms.include? 'DIGEST-MD5'
           auth_sasl SASL.new(self, 'DIGEST-MD5'), password
         elsif @stream_mechanisms.include? 'PLAIN'
           auth_sasl SASL.new(self, 'PLAIN'), password
